@@ -1,0 +1,54 @@
+services:
+  db:
+    image: postgres
+    container_name: db_1
+    ports:
+      - ${POSTGRES_PORT}:5432
+    environment:
+
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      
+  api:
+    depends_on:
+      db:
+        condition: service_healthy
+    build: ./api-server
+    image: api_image
+    container_name: api_1
+    command: bash -c "npx knex migrate:latest && npx knex seed:run && npm start"
+    ports:
+      - 8080:8080
+    volumes:
+      - ./api-server:/data/app
+    environment:
+      POSTGRES_HOST: ${POSTGRES_HOST}
+      POSTGRES_PORT: ${POSTGRES_PORT}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "node -e 'fetch(\"http://localhost:8080/room\").then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))'"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  frontend:
+    depends_on:
+      api:
+        condition: service_healthy
+    build: ./frontend-react
+    image: frontend_image
+    container_name: frontend_1
+    command: bash -c "npm start"
+    ports:
+      - 3000:3000
+    volumes:
+      - ./frontend-react:/data/app
