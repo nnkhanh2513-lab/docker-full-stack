@@ -13,6 +13,8 @@ var cors = corsMiddleware({
   
 server.pre(cors.preflight);
 server.use(cors.actual);
+server.use(restify.plugins.bodyParser({ mapParams: true })); // POST params
+server.use(restify.plugins.queryParser()); // GET query
 
 server.get('/', async function(req, res) {
 
@@ -39,6 +41,47 @@ server.get('/', async function(req, res) {
         Server: "Server is working very good",
         Database: db_info
       });
+});
+
+var jwt = require('jsonwebtoken');
+
+server.post('/login', async (req, res) => {
+    const {username = "", password = ""} = req.params;
+    if ((username.length == 0)
+        || (password.length == 0)
+    ) {
+        res.send({
+            success: false,
+            code: 401,
+            message: "Invalid username or password"
+        })
+    }
+
+    //Trả lại token nếu hợp lệ
+    if( ((username == "admin") && (password=="1234") )
+        || ((username == "manager01") && (password == "1234"))
+        || ((username == "manager02") && (password == "1234"))
+        || ((username == "customer01") && (password == "1234"))
+    ){
+        const secret = "my-secret-key";
+        const token = jwt.sign({
+            username: username ,
+             role: (username == "admin") ? "admin" 
+                : ((username == "manager01") 
+	                || (username == "manager02") ) ? "manager"
+                : "customer"
+        }, secret, { expiresIn: '1h' });
+        res.send({
+            success: true, code: 200,
+            message: "Login successfully",
+            token: token
+        })
+    } else {
+        res.send({
+            success: false,  code: 401,
+            message: "Invalid username or password"
+        });
+    }    
 });
 
 var PORT = 8080;
@@ -71,3 +114,4 @@ server.get('/room', async function(req, res) {
     rooms: result
   });
 });
+
