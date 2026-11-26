@@ -43,7 +43,7 @@ Copy .env-sample to .env in the root directory (alongside docker-compose.yml) an
 Open a terminal in the root directory and run:
 
 ```bash
-docker-compose up
+docker-compose up --build
 ```
 
 (Docker will initialize PostgreSQL, wait until the database accepts connections, trigger the API to execute migrations and seeds, and finally launch the React frontend)
